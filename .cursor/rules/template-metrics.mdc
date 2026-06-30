@@ -1,0 +1,151 @@
+---
+description: How to integrate codeandtheory/TemplateCodeMetrics into this repo. Invoke by prompting the Cursor AI with "Set up template metrics" (or similar) — the AI will scaffold the workflow + provenance JSON and print the secrets checklist.
+globs: ["**/*"]
+alwaysApply: false
+---
+
+# Setup guide — Template Code Metrics
+
+This rule teaches Cursor's AI how to integrate the `codeandtheory/TemplateCodeMetrics` GitHub Action into the current repository. Activate by prompting Cursor with something like:
+
+> "Set up template metrics for this repo"
+> "Add template-code tracking via the template-metrics Action"
+> "Onboard this repo to TemplateCodeMetrics"
+
+Reference: https://github.com/codeandtheory/TemplateCodeMetrics
+
+## What this Action does
+
+For each push to `main`, computes:
+- `template_pct` — % of current code that came from a baseline commit
+- `custom_pct` — % of current code added/modified since the baseline
+
+POSTs these to a shared DevLake instance via webhook. Grafana visualizes them.
+
+## How to integrate it — the AI's job
+
+When the user prompts you to set this up, follow this sequence:
+
+### Step 1 — Detect project type
+
+Inspect the repo to identify its language/framework. Look for these markers:
+
+- **React Native / Expo**: `app.json` + `app.config.ts` or `metro.config.js` or `ios/Podfile` AND `package.json` containing `react-native`
+- **Native iOS**: `*.xcodeproj` or `*.xcworkspace` and no React Native deps
+- **Native Android**: `build.gradle`(.kts) at root, no RN deps
+- **Python**: `pyproject.toml`, `setup.py`, or `requirements.txt`
+- **Go**: `go.mod`
+- **Rust**: `Cargo.toml`
+- **Java / Kotlin (non-Android)**: `pom.xml` or `build.gradle` outside `android/`
+- **Node / TS (non-RN)**: `package.json` without `react-native` deps
+- **Unknown**: ask the user
+
+Map the detected type to `extra_excludes`:
+
+| Type | `extra_excludes` value |
+|---|---|
+| React Native | `[":!**/*.xcconfig.local", ":!ios/.bundle/**"]` |
+| Native iOS | `[":!Carthage/**", ":!**/*.xcuserstate", ":!fastlane/report.xml", ":!fastlane/test_output/**"]` |
+| Native Android | `[":!**/build/**", ":!**/captures/**", ":!**/proguard/**", ":!local.properties"]` |
+| Python | `[":!**/migrations/**", ":!staticfiles/**", ":!**/__generated__/**", ":!**/*.pyi"]` |
+| Go | `[":!**/*.pb.go", ":!**/*_generated.go", ":!**/zz_generated_*.go", ":!**/mock_*.go"]` |
+| Rust / Java / Node / Other | `[]` |
+
+### Step 2 — Pick a baseline commit
+
+Ask the user one focused question:
+
+> What baseline commit should this tracker compare against? Options: (a) **root commit** of this repo; (b) **a tagged release** like v1.0.0; (c) **a specific SHA**.
+
+- For (a): `git rev-list --max-parents=0 HEAD` → use first line of output
+- For (b): `git rev-list -n 1 <tag>`
+- For (c): use the SHA the user provides
+
+Validate the SHA is reachable from HEAD with `git cat-file -e <sha>`. If invalid, ask again.
+
+### Step 3 — Write `.template-provenance.json` at repo root
+
+```json
+{
+  "schema_version": 1,
+  "baseline_commit": "<SHA from step 2>",
+  "extra_excludes": <array from step 1>
+}
+```
+
+If the file already exists, show the user the diff and ask before overwriting.
+
+### Step 4 — Write `.github/workflows/template-metrics.yml`
+
+Create directories as needed. File contents:
+
+```yaml
+name: Template Metrics
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+
+jobs:
+  measure:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: codeandtheory/TemplateCodeMetrics@v1
+        with:
+          devlake-webhook-url: ${{ secrets.DEVLAKE_WEBHOOK_URL }}
+          devlake-basic-auth:  ${{ secrets.DEVLAKE_BASIC_AUTH }}
+```
+
+If this file already exists, show the diff and ask before overwriting.
+
+### Step 5 — Print the next-steps checklist (verbatim)
+
+```
+✓ Template Code Metrics scaffolded.
+
+Still to do:
+  [ ] Set GitHub Actions secret DEVLAKE_WEBHOOK_URL — ask your admin for the value
+  [ ] Set GitHub Actions secret DEVLAKE_BASIC_AUTH — format user:pass (default devlake:merico on stock installs)
+
+  [ ] Commit and push the two new files:
+        git add .template-provenance.json .github/workflows/template-metrics.yml
+        git commit -m "chore: add template-code-metrics tracking"
+        git push
+
+If you have the gh CLI:
+  gh secret set DEVLAKE_WEBHOOK_URL --body "<paste-from-admin>"
+  gh secret set DEVLAKE_BASIC_AUTH  --body "<paste-from-admin>"
+
+Once secrets are set and you push, the repo will appear in the shared Grafana dashboard at the URL your admin provided.
+
+Reference: https://github.com/codeandtheory/TemplateCodeMetrics
+```
+
+## Hard rules — do NOT do any of these
+
+- **Don't commit anything.** Create files, print the checklist, let the user review and commit.
+- **Don't run `gh secret set` yourself.** The values come from the admin; print the commands.
+- **Don't modify existing files** other than the two scaffolded ones. Hands off `package.json`, build configs, source code.
+- **Don't run `git add`, `git commit`, `git push`** as part of setup.
+- **Don't proceed with an unvalidated baseline SHA.** A non-existent SHA produces silent 100%-template numbers, which is the worst failure mode.
+
+## Failure modes to handle
+
+- **Not a git repo**: tell the user this command only works inside a git repo, stop.
+- **No commits yet**: tell the user to make at least one commit first, stop.
+- **User cancels mid-flow**: don't leave half-written files. Clean up anything you wrote so far.
+
+## After setup — what the user should expect
+
+- First workflow run produces `metrics.json` (visible in the Action's artifacts)
+- DevLake gets a POST and stores a row in `cicd_deployments` with the metric JSON in `display_title`
+- Grafana's dashboard's `$repo` dropdown auto-populates with this repo's URL within seconds of the first POST
+- Subsequent commits add data points to the time-series panel

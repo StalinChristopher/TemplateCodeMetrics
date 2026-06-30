@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "baseline_commit": "REPLACE_WITH_YOUR_BASELINE_SHA",
+  "template_package": "@codeandtheory/ct-react-native-template",
+  "template_version": null,
+  "extra_excludes": [
+    ":!**/*.xcconfig.local",
+    ":!ios/.bundle/**"
+  ]
+}

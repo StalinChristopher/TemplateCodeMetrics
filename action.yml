@@ -1,0 +1,133 @@
+name: 'Template Code Metrics'
+description: 'Measure template-vs-custom code in your repo and report to DevLake for Grafana dashboards.'
+author: 'Code & Theory'
+branding:
+  icon: 'percent'
+  color: 'purple'
+
+inputs:
+  devlake-webhook-url:
+    description: 'Full DevLake webhook URL, e.g. https://devlake.example.com/api/plugins/webhook/connections/1/deployments'
+    required: true
+  devlake-basic-auth:
+    description: 'HTTP Basic auth credentials for DevLake config-ui, formatted as user:pass'
+    required: true
+  baseline-commit:
+    description: 'Override baseline commit SHA. If empty, the action reads .template-provenance.json#baseline_commit, then falls back to the repo root commit.'
+    required: false
+    default: ''
+  environment:
+    description: 'Logical environment label sent to DevLake (PRODUCTION | STAGING | TESTING | DEVELOPMENT). Cosmetic only.'
+    required: false
+    default: 'PRODUCTION'
+  fail-on-post-error:
+    description: 'Fail the workflow if the POST to DevLake errors. Default true.'
+    required: false
+    default: 'true'
+
+outputs:
+  template-pct:
+    description: 'Percentage of current code that came from the baseline (0-100, two decimals).'
+    value: ${{ steps.compute.outputs.template-pct }}
+  custom-pct:
+    description: 'Percentage of current code added/modified since the baseline.'
+    value: ${{ steps.compute.outputs.custom-pct }}
+  current-total-loc:
+    description: 'Total lines of code currently in scope (after exclusions).'
+    value: ${{ steps.compute.outputs.current-total-loc }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Ensure full git history is available
+      shell: bash
+      run: |
+        if [ "$(git rev-list --count HEAD 2>/dev/null)" -lt 2 ] && [ -z "${{ inputs.baseline-commit }}" ]; then
+          echo "Warning: shallow clone detected. The metric script needs full history."
+          echo "Add 'fetch-depth: 0' to your actions/checkout step, OR set baseline-commit input."
+        fi
+
+    - name: Optionally override baseline_commit in .template-provenance.json
+      if: inputs.baseline-commit != ''
+      shell: bash
+      run: |
+        if [ -f .template-provenance.json ]; then
+          jq --arg sha "${{ inputs.baseline-commit }}" '.baseline_commit = $sha' .template-provenance.json > .template-provenance.json.tmp
+          mv .template-provenance.json.tmp .template-provenance.json
+        else
+          echo "{\"schema_version\":1,\"baseline_commit\":\"${{ inputs.baseline-commit }}\"}" > .template-provenance.json
+        fi
+
+    - name: Compute template-vs-custom metrics
+      id: compute
+      shell: bash
+      run: |
+        node ${{ github.action_path }}/scripts/template-metrics.mjs > metrics.json
+        echo "template-pct=$(jq -r '.percentages.template_pct' metrics.json)" >> "$GITHUB_OUTPUT"
+        echo "custom-pct=$(jq -r '.percentages.custom_pct' metrics.json)" >> "$GITHUB_OUTPUT"
+        echo "current-total-loc=$(jq -r '.counts.current_total_loc' metrics.json)" >> "$GITHUB_OUTPUT"
+        echo ""
+        echo "=== Template Code Metrics ==="
+        jq '{template_pct: .percentages.template_pct, custom_pct: .percentages.custom_pct, total_loc: .counts.current_total_loc, baseline_commit, commit_sha}' metrics.json
+
+    - name: Upload metrics.json as workflow artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: template-metrics-${{ github.sha }}
+        path: metrics.json
+        if-no-files-found: error
+
+    - name: Build DevLake deployment payload
+      shell: bash
+      run: |
+        NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+        REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+        REF_NAME="${GITHUB_REF_NAME:-main}"
+        jq -n \
+          --arg id "$GITHUB_SHA" \
+          --arg sha "$GITHUB_SHA" \
+          --arg ref "$REF_NAME" \
+          --arg repo "$REPO_URL" \
+          --arg now "$NOW" \
+          --arg env "${{ inputs.environment }}" \
+          --slurpfile m metrics.json \
+          '{
+            id: $id,
+            name: ("template-metrics " + ($m[0].percentages.template_pct|tostring) + "% template / " + ($m[0].percentages.custom_pct|tostring) + "% custom"),
+            displayTitle: ($m[0] | tojson),
+            environment: $env,
+            startedDate: $now,
+            finishedDate: $now,
+            result: "SUCCESS",
+            deploymentCommits: [{
+              repoUrl: $repo,
+              commitSha: $sha,
+              refName: $ref,
+              startedDate: $now,
+              finishedDate: $now,
+              result: "SUCCESS"
+            }]
+          }' > devlake-payload.json
+
+    - name: POST to DevLake
+      shell: bash
+      env:
+        DEVLAKE_WEBHOOK_URL: ${{ inputs.devlake-webhook-url }}
+        DEVLAKE_BASIC_AUTH: ${{ inputs.devlake-basic-auth }}
+        FAIL_ON_ERROR: ${{ inputs.fail-on-post-error }}
+      run: |
+        if [ -z "$DEVLAKE_WEBHOOK_URL" ] || [ -z "$DEVLAKE_BASIC_AUTH" ]; then
+          echo "Missing devlake-webhook-url or devlake-basic-auth input — skipping POST."
+          exit 0
+        fi
+        if [ "$FAIL_ON_ERROR" = "true" ]; then
+          CURL_FLAGS="-fsSL"
+        else
+          CURL_FLAGS="-sSL"
+        fi
+        curl $CURL_FLAGS -X POST "$DEVLAKE_WEBHOOK_URL" \
+          -u "$DEVLAKE_BASIC_AUTH" \
+          -H 'Content-Type: application/json' \
+          --data-binary @devlake-payload.json
+        echo ""
+        echo "Posted to DevLake successfully."

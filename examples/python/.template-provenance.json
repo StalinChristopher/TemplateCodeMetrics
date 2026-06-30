@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "baseline_commit": "REPLACE_WITH_YOUR_BASELINE_SHA",
+  "extra_excludes": [
+    ":!**/migrations/**",
+    ":!staticfiles/**",
+    ":!**/__generated__/**",
+    ":!**/*.pyi"
+  ]
+}
