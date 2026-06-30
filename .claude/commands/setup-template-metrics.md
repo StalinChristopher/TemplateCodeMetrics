@@ -77,34 +77,9 @@ If `.template-provenance.json` already exists, ask the user before overwriting. 
 
 ### 4. Create `.github/workflows/template-metrics.yml`
 
-Write to that exact path (create directories if missing):
+Copy `action.yml` from the repo root verbatim to `.github/workflows/template-metrics.yml` (create the `.github/workflows/` directories if missing).
 
-```yaml
-name: Template Metrics
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    types: [closed]
-  workflow_dispatch:
-
-jobs:
-  measure:
-    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: codeandtheory/TemplateCodeMetrics@v1
-        with:
-          devlake-webhook-url: ${{ secrets.DEVLAKE_WEBHOOK_URL }}
-          devlake-basic-auth:  ${{ secrets.DEVLAKE_BASIC_AUTH }}
-```
-
-If `SEMANTIC_ENABLED` from step 2b is true, also append this line under `with:`:
+If `SEMANTIC_ENABLED` from step 2b is true, also append this line under the `with:` block of the `codeandtheory/TemplateCodeMetrics` step:
 
 ```yaml
           anthropic-api-key:   ${{ secrets.ANTHROPIC_API_KEY }}

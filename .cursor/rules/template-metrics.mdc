@@ -77,32 +77,7 @@ If the file already exists, show the user the diff and ask before overwriting.
 
 ### Step 4 — Write `.github/workflows/template-metrics.yml`
 
-Create directories as needed. File contents:
-
-```yaml
-name: Template Metrics
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    types: [closed]
-  workflow_dispatch:
-
-jobs:
-  measure:
-    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: codeandtheory/TemplateCodeMetrics@v1
-        with:
-          devlake-webhook-url: ${{ secrets.DEVLAKE_WEBHOOK_URL }}
-          devlake-basic-auth:  ${{ secrets.DEVLAKE_BASIC_AUTH }}
-```
+Create directories as needed. Copy `action.yml` from the repo root verbatim as the file contents.
 
 If this file already exists, show the diff and ask before overwriting.
 
