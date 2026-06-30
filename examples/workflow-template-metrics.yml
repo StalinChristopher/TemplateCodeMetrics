@@ -29,7 +29,14 @@ jobs:
         with:
           devlake-webhook-url: ${{ secrets.DEVLAKE_WEBHOOK_URL }}
           devlake-basic-auth:  ${{ secrets.DEVLAKE_BASIC_AUTH }}
-          # Optional overrides:
+          # Optional: enable the Claude-judged semantic score alongside the
+          # deterministic one. Adds ~1¢ per commit; cosmetic-only diffs
+          # (Prettier reformats, renames, comment edits) stop counting as
+          # customization. Requires an ANTHROPIC_API_KEY repo/org secret.
+          # anthropic-api-key:        ${{ secrets.ANTHROPIC_API_KEY }}
+          # semantic-model:           claude-haiku-4-5-20251001
+          # semantic-max-diff-lines:  10000
+          # Other optional overrides:
           # baseline-commit: <sha>     # falls back to .template-provenance.json or root commit
           # environment: PRODUCTION    # one of PRODUCTION | STAGING | TESTING | DEVELOPMENT
           # fail-on-post-error: true   # set false if you don't want the workflow to fail when DevLake is down

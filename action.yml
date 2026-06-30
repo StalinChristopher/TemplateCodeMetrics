@@ -24,6 +24,18 @@ inputs:
     description: 'Fail the workflow if the POST to DevLake errors. Default true.'
     required: false
     default: 'true'
+  anthropic-api-key:
+    description: 'Optional. If set, the action also computes a Claude-judged semantic score that classifies each diff line as substantive (logic) or cosmetic (formatting/rename/comment). When unset, only the deterministic score is emitted and the semantic fields are null.'
+    required: false
+    default: ''
+  semantic-model:
+    description: 'Optional Claude model id for semantic scoring. Defaults to claude-haiku-4-5-20251001.'
+    required: false
+    default: 'claude-haiku-4-5-20251001'
+  semantic-max-diff-lines:
+    description: 'Optional cost guardrail. Skip the semantic path when the deterministic diff exceeds this many changed lines. Default 10000.'
+    required: false
+    default: '10000'
 
 outputs:
   template-pct:
@@ -35,6 +47,12 @@ outputs:
   current-total-loc:
     description: 'Total lines of code currently in scope (after exclusions).'
     value: ${{ steps.compute.outputs.current-total-loc }}
+  template-pct-semantic:
+    description: 'Claude-judged template percentage (cosmetic changes ignored). Empty when the semantic path was skipped (no API key, oversize diff, or API failure).'
+    value: ${{ steps.compute.outputs.template-pct-semantic }}
+  custom-pct-semantic:
+    description: 'Claude-judged custom percentage. Empty when the semantic path was skipped.'
+    value: ${{ steps.compute.outputs.custom-pct-semantic }}
 
 runs:
   using: 'composite'
@@ -61,14 +79,21 @@ runs:
     - name: Compute template-vs-custom metrics
       id: compute
       shell: bash
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        SEMANTIC_MODEL: ${{ inputs.semantic-model }}
+        SEMANTIC_MAX_DIFF_LINES: ${{ inputs.semantic-max-diff-lines }}
       run: |
         node ${{ github.action_path }}/scripts/template-metrics.mjs > metrics.json
         echo "template-pct=$(jq -r '.percentages.template_pct' metrics.json)" >> "$GITHUB_OUTPUT"
         echo "custom-pct=$(jq -r '.percentages.custom_pct' metrics.json)" >> "$GITHUB_OUTPUT"
         echo "current-total-loc=$(jq -r '.counts.current_total_loc' metrics.json)" >> "$GITHUB_OUTPUT"
+        # Semantic outputs are empty strings when the semantic path was skipped (null in JSON).
+        echo "template-pct-semantic=$(jq -r '.percentages.template_pct_semantic // empty' metrics.json)" >> "$GITHUB_OUTPUT"
+        echo "custom-pct-semantic=$(jq -r '.percentages.custom_pct_semantic // empty' metrics.json)" >> "$GITHUB_OUTPUT"
         echo ""
         echo "=== Template Code Metrics ==="
-        jq '{template_pct: .percentages.template_pct, custom_pct: .percentages.custom_pct, total_loc: .counts.current_total_loc, baseline_commit, commit_sha}' metrics.json
+        jq '{template_pct: .percentages.template_pct, custom_pct: .percentages.custom_pct, template_pct_semantic: .percentages.template_pct_semantic, custom_pct_semantic: .percentages.custom_pct_semantic, total_loc: .counts.current_total_loc, semantic: .semantic, baseline_commit, commit_sha}' metrics.json
 
     - name: Upload metrics.json as workflow artifact
       uses: actions/upload-artifact@v4

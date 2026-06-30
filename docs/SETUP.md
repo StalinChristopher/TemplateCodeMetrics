@@ -147,6 +147,25 @@ For how to pick `baseline_commit` and which `extra_excludes` to add for your lan
 
 Commit, push to main, and within ~1 minute the workflow run completes and your repo appears in the Grafana dashboard's `$repo` dropdown.
 
+## Step 6b — Optional: enable semantic (Claude-judged) scoring
+
+Alongside the deterministic git-diff score, the action can also compute a Claude-judged **semantic** score that discounts cosmetic-only changes (Prettier reformats, renames, comment edits, import reorderings). This shows up as a second row of panels in Grafana.
+
+It's opt-in per repo: if you don't set the API key, the semantic fields are emitted as `null` and the Grafana semantic panels simply skip this repo.
+
+1. Get an Anthropic API key from https://console.anthropic.com (or use an org-level key).
+2. Add it as a GitHub Actions secret named `ANTHROPIC_API_KEY` (repo-level, or org-level so all opt-in repos inherit it).
+3. Add the input to the target repo's workflow:
+   ```yaml
+   - uses: codeandtheory/TemplateCodeMetrics@v1
+     with:
+       devlake-webhook-url: ${{ secrets.DEVLAKE_WEBHOOK_URL }}
+       devlake-basic-auth:  ${{ secrets.DEVLAKE_BASIC_AUTH }}
+       anthropic-api-key:   ${{ secrets.ANTHROPIC_API_KEY }}    # opt-in
+   ```
+
+Cost is roughly 1 cent per commit on the default model (`claude-haiku-4-5-20251001`). The action will skip the semantic step automatically when the diff exceeds 10,000 changed lines (configurable via `semantic-max-diff-lines`) as a runaway-cost guardrail, and falls back gracefully on API failures without breaking the deterministic path.
+
 ## Step 7 — Share with leadership
 
 Send leadership the public Grafana URL:

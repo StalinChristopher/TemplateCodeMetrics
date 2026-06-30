@@ -57,6 +57,22 @@ File: [`grafana/queries/40-stat-template-pct.sql`](../grafana/queries/40-stat-te
 
 Visualization: **Stat**. Unit: percent. Use it as the headline number on the dashboard.
 
+### Semantic row — Claude-judged panels (opt-in repos only)
+
+The dashboard has a second row of four panels titled **"Semantic (Claude-judged — opt-in repos only)"** that mirror the deterministic panels but read `template_pct_semantic` and `custom_pct_semantic` from the metrics JSON. Files:
+
+- [`grafana/queries/41-stat-template-pct-semantic.sql`](../grafana/queries/41-stat-template-pct-semantic.sql)
+- [`grafana/queries/11-pie-current-semantic.sql`](../grafana/queries/11-pie-current-semantic.sql)
+- [`grafana/queries/21-timeseries-semantic.sql`](../grafana/queries/21-timeseries-semantic.sql)
+- [`grafana/queries/31-cross-repo-bar-semantic.sql`](../grafana/queries/31-cross-repo-bar-semantic.sql)
+
+Each query filters on `JSON_EXTRACT(..., '$.percentages.template_pct_semantic') IS NOT NULL`. Repos that haven't enabled semantic scoring (no `ANTHROPIC_API_KEY` secret) won't appear in these panels — they aren't counted as 0%. This means:
+
+- The **stat / pie / timeseries** panels show blank for the selected repo when it's opt-out — that's correct behavior.
+- The **cross-repo bar chart** only lists opt-in repos. To know which repos are opt-in at a glance, that bar chart is the canonical view.
+
+The most useful comparison is the timeseries pair: the gap between the deterministic and semantic lines on the same repo tells you how much of the apparent "customization" was actually formatting passes.
+
 ## Important: variable interpolation in SQL
 
 Always use Grafana's `:sqlstring` format for the `$repo` variable:

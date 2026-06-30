@@ -49,6 +49,18 @@ For option (c), use the user's pasted SHA verbatim.
 
 Validate the SHA exists in this repo's history with `git cat-file -e <sha>`. If it errors, tell the user the SHA isn't in this repo's history and ask again.
 
+### 2b. Offer semantic scoring (opt-in)
+
+Ask the user one focused yes/no question:
+
+> "Enable Claude-judged **semantic** scoring alongside the deterministic git-diff score?
+> - Adds a second `template_pct_semantic` value to the metrics that ignores Prettier reformats, renames, comment edits, and similar cosmetic changes.
+> - Costs ~1¢ per commit using `claude-haiku-4-5-20251001`.
+> - Requires an `ANTHROPIC_API_KEY` GitHub Actions secret.
+> - You can enable this later by adding the input + secret yourself; this question is just for convenience."
+
+Remember the user's answer as `SEMANTIC_ENABLED` (true/false). It changes the workflow scaffolded in step 4 and the secrets checklist in step 5.
+
 ### 3. Create `.template-provenance.json`
 
 Write to repo root:
@@ -92,6 +104,12 @@ jobs:
           devlake-basic-auth:  ${{ secrets.DEVLAKE_BASIC_AUTH }}
 ```
 
+If `SEMANTIC_ENABLED` from step 2b is true, also append this line under `with:`:
+
+```yaml
+          anthropic-api-key:   ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
 If the file already exists, ask before overwriting.
 
 ### 5. Print the next-steps checklist
@@ -108,6 +126,10 @@ Still to do:
   [ ] Set GitHub Actions secret DEVLAKE_BASIC_AUTH
       Format: user:pass — typically devlake:<your-team's-password>
 
+  [ ] (Only if you enabled semantic scoring in step 2b)
+      Set GitHub Actions secret ANTHROPIC_API_KEY
+      An Anthropic API key with billing enabled. Used for the Claude-judged semantic score.
+
   [ ] Commit the two new files and push:
         git add .template-provenance.json .github/workflows/template-metrics.yml
         git commit -m "chore: add template-code-metrics tracking"
@@ -118,6 +140,7 @@ After the first workflow run, the repo will appear in the shared Grafana dashboa
 Quick gh-cli secret setup (run from this repo):
   gh secret set DEVLAKE_WEBHOOK_URL --body "<paste-from-admin>"
   gh secret set DEVLAKE_BASIC_AUTH  --body "<paste-from-admin>"
+  gh secret set ANTHROPIC_API_KEY   --body "<paste-your-key>"   # only if semantic enabled
 
 Reference: https://github.com/codeandtheory/TemplateCodeMetrics
 ```

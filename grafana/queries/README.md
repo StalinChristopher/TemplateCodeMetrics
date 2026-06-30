@@ -6,9 +6,15 @@ Individual SQL files behind each panel of the dashboard. Use these if you'd rath
 |---|---|---|
 | `00-variable-repos.sql` | The `$repo` dropdown variable | Variable (not a panel) |
 | `10-pie-current.sql` | Template vs custom — current snapshot | Pie chart (donut) |
+| `11-pie-current-semantic.sql` | Template vs custom — semantic (Claude-judged) | Pie chart (donut) |
 | `20-timeseries.sql` | Template % over time | Time series |
+| `21-timeseries-semantic.sql` | Template % over time — semantic | Time series |
 | `30-cross-repo-bar.sql` | All repos comparison | Bar chart |
+| `31-cross-repo-bar-semantic.sql` | All repos comparison — semantic | Bar chart |
 | `40-stat-template-pct.sql` | Headline template % number | Stat |
+| `41-stat-template-pct-semantic.sql` | Headline semantic template % number | Stat |
+
+The `*-semantic.sql` files all filter rows where `JSON_EXTRACT(d.display_title, '$.percentages.template_pct_semantic') IS NOT NULL`, so only repos that have opted into Claude-judged scoring (by setting the `anthropic-api-key` action input) appear in those panels. Repos that haven't enabled it simply don't show up — they aren't counted as 0%.
 
 ## Variable interpolation
 

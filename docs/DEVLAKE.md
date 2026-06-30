@@ -78,6 +78,52 @@ WHERE d.display_title LIKE '{"schema_version"%';
 
 The `LIKE` filter discriminates our rows from any other deployment data that might land in the same table.
 
+## Metrics JSON schema (what lives in `display_title`)
+
+The script writes a JSON blob to `display_title`. The shape (current schema version is `2`):
+
+```jsonc
+{
+  "schema_version": 2,
+  "measured_at": "2026-06-30T12:00:00Z",
+  "repo": { "remote_url": "...", "slug": "org/repo" },
+  "commit_sha": "...",
+  "baseline_commit": "...",
+  "template": { ... },
+  "counts": {
+    "template_unchanged_loc": 0,
+    "template_modified_loc": 0,
+    "custom_added_loc": 0,
+    "template_removed_loc": 0,
+    "current_total_loc": 0,
+    "semantic_custom_added_loc": null   // schema_version 2+. null when semantic skipped
+  },
+  "percentages": {
+    "template_pct": 0,
+    "custom_pct": 0,
+    "template_pct_semantic": null,      // schema_version 2+. null when semantic skipped
+    "custom_pct_semantic": null         // schema_version 2+. null when semantic skipped
+  },
+  "semantic": {                          // schema_version 2+
+    "enabled": false,
+    "model": null,
+    "skipped_reason": "no_api_key",
+    "files_classified": 0,
+    "diff_lines_sent": 0
+  },
+  "per_file": [ ... ]
+}
+```
+
+### Schema versions
+
+| Version | Notes |
+|---|---|
+| `1` | Original schema. Only deterministic percentages. Still present in historical rows. |
+| `2` | Adds `percentages.template_pct_semantic`, `percentages.custom_pct_semantic`, `counts.semantic_custom_added_loc`, and the `semantic` debug block. All semantic fields are nullable — repos that haven't opted into the Claude-judged score emit them as `null`. Also: the deterministic algorithm switched to `git diff -M -C -w --ignore-blank-lines --diff-algorithm=histogram`, so per-commit values may step upward when first upgraded (whitespace-only edits and renames are no longer counted as customization). |
+
+Grafana panels should use `IS NOT NULL` guards on the semantic fields so opt-out repos are excluded from semantic-only views rather than counted as zero. See [`grafana/queries/`](../grafana/queries/) for the canonical query shape.
+
 ## Production hardening (when you move off laptop)
 
 1. **Change `ADMIN_PASS`** in DevLake's `.env` from the `merico` default. This password also becomes the `DEVLAKE_BASIC_AUTH` value GitHub Actions use. Update org/repo secrets after rotating.

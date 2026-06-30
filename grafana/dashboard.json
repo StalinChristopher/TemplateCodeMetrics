@@ -194,6 +194,194 @@
       ],
       "title": "All repos — latest template % vs custom %",
       "type": "barchart"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 16},
+      "id": 100,
+      "panels": [],
+      "title": "Semantic (Claude-judged — opt-in repos only)",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "mysql", "uid": "${DS_MYSQL}"},
+      "description": "Claude-judged template percentage — cosmetic-only diffs (Prettier reformats, renames, comment edits) are reabsorbed into template. Only repos that set the anthropic-api-key action input appear here.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "purple", "value": null}
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 17},
+      "id": 101,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "mysql", "uid": "${DS_MYSQL}"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT CAST(JSON_EXTRACT(d.display_title, '$.percentages.template_pct_semantic') AS DECIMAL(5,2)) AS template_pct_semantic\nFROM cicd_deployments d\nJOIN cicd_deployment_commits cdc ON cdc.cicd_deployment_id = d.id\nWHERE cdc.repo_url = ${repo:sqlstring}\n  AND d.display_title LIKE '{\"schema_version\"%'\n  AND JSON_EXTRACT(d.display_title, '$.percentages.template_pct_semantic') IS NOT NULL\nORDER BY d.started_date DESC\nLIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Template % (semantic) — $repo",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "mysql", "uid": "${DS_MYSQL}"},
+      "description": "Latest semantic template-vs-custom snapshot for $repo.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {"hideFrom": {"legend": false, "tooltip": false, "viz": false}},
+          "mappings": [],
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 17},
+      "id": 102,
+      "options": {
+        "displayLabels": ["percent", "name"],
+        "legend": {"displayMode": "list", "placement": "bottom", "showLegend": true, "values": []},
+        "pieType": "donut",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "tooltip": {"mode": "single", "sort": "none"}
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "mysql", "uid": "${DS_MYSQL}"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT 'Template (semantic)' AS metric, CAST(JSON_EXTRACT(d.display_title, '$.percentages.template_pct_semantic') AS DECIMAL(5,2)) AS value\nFROM cicd_deployments d JOIN cicd_deployment_commits cdc ON cdc.cicd_deployment_id = d.id\nWHERE cdc.repo_url = ${repo:sqlstring} AND d.display_title LIKE '{\"schema_version\"%'\n  AND JSON_EXTRACT(d.display_title, '$.percentages.template_pct_semantic') IS NOT NULL\nORDER BY d.started_date DESC LIMIT 1\nUNION ALL\nSELECT 'Custom (semantic)' AS metric, CAST(JSON_EXTRACT(d.display_title, '$.percentages.custom_pct_semantic') AS DECIMAL(5,2)) AS value\nFROM cicd_deployments d JOIN cicd_deployment_commits cdc ON cdc.cicd_deployment_id = d.id\nWHERE cdc.repo_url = ${repo:sqlstring} AND d.display_title LIKE '{\"schema_version\"%'\n  AND JSON_EXTRACT(d.display_title, '$.percentages.custom_pct_semantic') IS NOT NULL\nORDER BY d.started_date DESC LIMIT 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Template vs Custom (semantic) — current",
+      "type": "piechart"
+    },
+    {
+      "datasource": {"type": "mysql", "uid": "${DS_MYSQL}"},
+      "description": "Semantic template % over time. Gap vs the deterministic timeseries above shows how much of the apparent 'customization' was actually formatting / renames.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 17},
+      "id": 103,
+      "options": {
+        "legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true},
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "mysql", "uid": "${DS_MYSQL}"},
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT d.started_date AS time, 'template_pct_semantic' AS metric, CAST(JSON_EXTRACT(d.display_title, '$.percentages.template_pct_semantic') AS DECIMAL(5,2)) AS value\nFROM cicd_deployments d JOIN cicd_deployment_commits cdc ON cdc.cicd_deployment_id = d.id\nWHERE cdc.repo_url = ${repo:sqlstring} AND d.display_title LIKE '{\"schema_version\"%'\n  AND JSON_EXTRACT(d.display_title, '$.percentages.template_pct_semantic') IS NOT NULL\n  AND $__timeFilter(d.started_date)\nUNION ALL\nSELECT d.started_date AS time, 'custom_pct_semantic' AS metric, CAST(JSON_EXTRACT(d.display_title, '$.percentages.custom_pct_semantic') AS DECIMAL(5,2)) AS value\nFROM cicd_deployments d JOIN cicd_deployment_commits cdc ON cdc.cicd_deployment_id = d.id\nWHERE cdc.repo_url = ${repo:sqlstring} AND d.display_title LIKE '{\"schema_version\"%'\n  AND JSON_EXTRACT(d.display_title, '$.percentages.custom_pct_semantic') IS NOT NULL\n  AND $__timeFilter(d.started_date)\nORDER BY time",
+          "refId": "A"
+        }
+      ],
+      "title": "Template % over time (semantic) — $repo",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "mysql", "uid": "${DS_MYSQL}"},
+      "description": "Portfolio view of the Claude-judged template percentage. Opt-out repos do not appear.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+            "lineWidth": 1,
+            "scaleDistribution": {"type": "linear"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {"mode": "absolute", "steps": [{"color": "purple", "value": null}]},
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 25},
+      "id": 104,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.7,
+        "groupWidth": 0.7,
+        "legend": {"calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true},
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {"mode": "single", "sort": "none"},
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "datasource": {"type": "mysql", "uid": "${DS_MYSQL}"},
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT SUBSTRING_INDEX(latest.repo_url, '/', -1) AS repo,\n       CAST(JSON_EXTRACT(latest.display_title, '$.percentages.template_pct_semantic') AS DECIMAL(5,2)) AS template_pct_semantic,\n       CAST(JSON_EXTRACT(latest.display_title, '$.percentages.custom_pct_semantic')   AS DECIMAL(5,2)) AS custom_pct_semantic\nFROM (\n  SELECT cdc.repo_url, d.display_title, d.started_date,\n         ROW_NUMBER() OVER (PARTITION BY cdc.repo_url ORDER BY d.started_date DESC) AS rn\n  FROM cicd_deployments d\n  JOIN cicd_deployment_commits cdc ON cdc.cicd_deployment_id = d.id\n  WHERE d.display_title LIKE '{\"schema_version\"%'\n    AND JSON_EXTRACT(d.display_title, '$.percentages.template_pct_semantic') IS NOT NULL\n) latest\nWHERE latest.rn = 1\nORDER BY template_pct_semantic DESC",
+          "refId": "A"
+        }
+      ],
+      "title": "All repos — latest semantic template % vs custom %",
+      "type": "barchart"
     }
   ],
   "refresh": "",

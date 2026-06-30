@@ -154,3 +154,36 @@ Two possible reasons:
 ## "I made the secrets but the action still says they're empty"
 
 GitHub Actions don't expose secrets to PRs from forks. If you're testing via a fork PR, the secrets will be empty by design. Push to a branch in the same repo instead, or use `workflow_dispatch` to trigger manually.
+
+## `template_pct` jumped upward after upgrading to schema_version 2
+
+**Expected** — schema v2 switches the deterministic diff to `git diff -M -C -w --ignore-blank-lines --diff-algorithm=histogram`. That means whitespace-only edits, blank-line tweaks, and file renames no longer count as customization. Repos that had a Prettier rollout or large rename in their history will jump 2–10 points overnight, with no actual code change. This is the intended behavior of the upgrade; historical rows (`schema_version: 1`) remain visible but won't recompute.
+
+If you want to keep the old strict behavior for a particular repo, you can't — the diff flags are baked into the script. Either accept the new baseline as the source of truth or compare against the historical timeseries to quantify the shift.
+
+## `template_pct_semantic` and `custom_pct_semantic` are `null`
+
+The semantic path was skipped. Check `metrics.json` (or the workflow logs) for the `semantic.skipped_reason` field. Possible values:
+
+- `"no_api_key"` — `ANTHROPIC_API_KEY` was not passed to the action. Add it as a repo or org secret and wire it into your workflow's `with:` block as `anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}`. This is the intended behavior for opt-out repos.
+- `"diff_exceeds_max (N > 10000)"` — the diff is bigger than the cost guardrail. Raise `semantic-max-diff-lines` in the workflow if you want this commit's semantic score badly enough to pay the API cost.
+- `"api_error"` — the Anthropic API rejected one or more requests after retries (401, malformed key, rate limit exhaustion, sustained 5xx). The deterministic score is still posted. Re-running the workflow usually resolves transient failures.
+
+The semantic panels in Grafana filter `IS NOT NULL`, so an opt-out or skipped commit simply doesn't appear in those panels — it doesn't show as zero.
+
+## Deterministic and semantic scores diverge wildly on one commit
+
+That's the signal you wanted. A large gap (e.g. deterministic dropped 10 points but semantic stayed flat) usually means the commit was dominated by a Prettier reformat, an import reorder, a comment rewrite, or a rename — exactly the cases the semantic pass is designed to forgive.
+
+Drill in:
+```bash
+node /path/to/template-metrics.mjs | jq '{
+  pct: .percentages,
+  by_file: [.per_file[] | select(.custom_added > 0) | {path, custom_added}]
+}'
+```
+…then read the actual diffs for the top contributors. Usually the answer is obvious.
+
+If the divergence happens repeatedly on commits that are NOT cosmetic, your model may be misclassifying. Two knobs:
+1. Bump the model to `claude-sonnet-4-6` via the `semantic-model` input — better judgment on tricky cases at ~3-5× the cost.
+2. Inspect the per-file reasoning by extending the script to log `verdict.reasoning` for spot-checks.
