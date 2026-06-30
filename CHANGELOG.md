@@ -5,7 +5,7 @@ All notable changes to TemplateCodeMetrics are documented here.
 ## v1.0.0 — Initial release
 
 **Action**
-- Composite GitHub Action (`action.yml`) that target repos consume via `uses: codeandtheory/TemplateCodeMetrics@v1`
+- Composite GitHub Action (`action.yml`) that target repos consume via `uses: StalinChristopher/TemplateCodeMetrics@v1`
 - Inputs: `devlake-webhook-url`, `devlake-basic-auth`, `baseline-commit` (optional), `environment` (optional), `fail-on-post-error` (optional)
 - Outputs: `template-pct`, `custom-pct`, `current-total-loc`
 

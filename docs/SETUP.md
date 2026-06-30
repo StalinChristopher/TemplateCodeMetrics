@@ -127,7 +127,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: codeandtheory/TemplateCodeMetrics@v1
+      - uses: StalinChristopher/TemplateCodeMetrics@v1
         with:
           devlake-webhook-url: ${{ secrets.DEVLAKE_WEBHOOK_URL }}
           devlake-basic-auth:  ${{ secrets.DEVLAKE_BASIC_AUTH }}
@@ -157,7 +157,7 @@ It's opt-in per repo: if you don't set the API key, the semantic fields are emit
 2. Add it as a GitHub Actions secret named `ANTHROPIC_API_KEY` (repo-level, or org-level so all opt-in repos inherit it).
 3. Add the input to the target repo's workflow:
    ```yaml
-   - uses: codeandtheory/TemplateCodeMetrics@v1
+   - uses: StalinChristopher/TemplateCodeMetrics@v1
      with:
        devlake-webhook-url: ${{ secrets.DEVLAKE_WEBHOOK_URL }}
        devlake-basic-auth:  ${{ secrets.DEVLAKE_BASIC_AUTH }}
