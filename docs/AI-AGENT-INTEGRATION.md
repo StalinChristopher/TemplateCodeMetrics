@@ -19,7 +19,7 @@ From the target repo's root:
 
 ```bash
 mkdir -p .claude/commands
-curl -fsSL https://raw.githubusercontent.com/codeandtheory/TemplateCodeMetrics/main/.claude/commands/setup-template-metrics.md \
+curl -fsSL https://raw.githubusercontent.com/StalinChristopher/TemplateCodeMetrics/main/.claude/commands/setup-template-metrics.md \
   -o .claude/commands/setup-template-metrics.md
 ```
 
@@ -36,7 +36,7 @@ In a Claude Code session inside that repo, type `/setup-template-metrics` — th
 
 ```bash
 mkdir -p ~/.claude/commands
-curl -fsSL https://raw.githubusercontent.com/codeandtheory/TemplateCodeMetrics/main/.claude/commands/setup-template-metrics.md \
+curl -fsSL https://raw.githubusercontent.com/StalinChristopher/TemplateCodeMetrics/main/.claude/commands/setup-template-metrics.md \
   -o ~/.claude/commands/setup-template-metrics.md
 ```
 
@@ -64,7 +64,7 @@ Cursor rules are project-scoped — install them per repo.
 
 ```bash
 mkdir -p .cursor/rules
-curl -fsSL https://raw.githubusercontent.com/codeandtheory/TemplateCodeMetrics/main/.cursor/rules/template-metrics.mdc \
+curl -fsSL https://raw.githubusercontent.com/StalinChristopher/TemplateCodeMetrics/main/.cursor/rules/template-metrics.mdc \
   -o .cursor/rules/template-metrics.mdc
 ```
 
@@ -102,9 +102,9 @@ Add this to your shell rc, or run it once per target repo:
 ```bash
 target_repo_install_template_metrics() {
   mkdir -p .claude/commands .cursor/rules
-  curl -fsSL https://raw.githubusercontent.com/codeandtheory/TemplateCodeMetrics/main/.claude/commands/setup-template-metrics.md \
+  curl -fsSL https://raw.githubusercontent.com/StalinChristopher/TemplateCodeMetrics/main/.claude/commands/setup-template-metrics.md \
     -o .claude/commands/setup-template-metrics.md
-  curl -fsSL https://raw.githubusercontent.com/codeandtheory/TemplateCodeMetrics/main/.cursor/rules/template-metrics.mdc \
+  curl -fsSL https://raw.githubusercontent.com/StalinChristopher/TemplateCodeMetrics/main/.cursor/rules/template-metrics.mdc \
     -o .cursor/rules/template-metrics.mdc
   echo "Installed. Now open this repo in Claude Code (/setup-template-metrics) or Cursor (prompt: 'Set up template metrics')."
 }

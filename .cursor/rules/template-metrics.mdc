@@ -1,18 +1,18 @@
 ---
-description: How to integrate codeandtheory/TemplateCodeMetrics into this repo. Invoke by prompting the Cursor AI with "Set up template metrics" (or similar) — the AI will scaffold the workflow + provenance JSON and print the secrets checklist.
+description: How to integrate https://github.com/StalinChristopher/TemplateCodeMetrics into this repo. Invoke by prompting the Cursor AI with "Set up template metrics" (or similar) — the AI will scaffold the workflow + provenance JSON and print the secrets checklist.
 globs: ["**/*"]
 alwaysApply: false
 ---
 
 # Setup guide — Template Code Metrics
 
-This rule teaches Cursor's AI how to integrate the `codeandtheory/TemplateCodeMetrics` GitHub Action into the current repository. Activate by prompting Cursor with something like:
+This rule teaches Cursor's AI how to integrate the `https://github.com/StalinChristopher/TemplateCodeMetrics` GitHub Action into the current repository. Activate by prompting Cursor with something like:
 
 > "Set up template metrics for this repo"
 > "Add template-code tracking via the template-metrics Action"
 > "Onboard this repo to TemplateCodeMetrics"
 
-Reference: https://github.com/codeandtheory/TemplateCodeMetrics
+Reference: https://github.com/StalinChristopher/TemplateCodeMetrics
 
 ## What this Action does
 
@@ -101,7 +101,7 @@ If you have the gh CLI:
 
 Once secrets are set and you push, the repo will appear in the shared Grafana dashboard at the URL your admin provided.
 
-Reference: https://github.com/codeandtheory/TemplateCodeMetrics
+Reference: https://github.com/StalinChristopher/TemplateCodeMetrics
 ```
 
 ## Hard rules — do NOT do any of these

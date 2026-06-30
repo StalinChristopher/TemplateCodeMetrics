@@ -31,9 +31,9 @@ Once your admin has set up DevLake + the GitHub secrets (see [`docs/SETUP.md`](d
 
 ```bash
 mkdir -p .claude/commands .cursor/rules
-curl -fsSL https://raw.githubusercontent.com/codeandtheory/TemplateCodeMetrics/main/.claude/commands/setup-template-metrics.md \
+curl -fsSL https://raw.githubusercontent.com/StalinChristopher/TemplateCodeMetrics/update-action-file/.claude/commands/setup-template-metrics.md \
   -o .claude/commands/setup-template-metrics.md
-curl -fsSL https://raw.githubusercontent.com/codeandtheory/TemplateCodeMetrics/main/.cursor/rules/template-metrics.mdc \
+curl -fsSL https://raw.githubusercontent.com/StalinChristopher/TemplateCodeMetrics/main/.cursor/rules/template-metrics.mdc \
   -o .cursor/rules/template-metrics.mdc
 ```
 
@@ -61,7 +61,7 @@ jobs:
         with:
           fetch-depth: 0           # required — needs full history
 
-      - uses: codeandtheory/TemplateCodeMetrics@v1
+      - uses: StalinChristopher/TemplateCodeMetrics@v1
         with:
           devlake-webhook-url: ${{ secrets.DEVLAKE_WEBHOOK_URL }}
           devlake-basic-auth:  ${{ secrets.DEVLAKE_BASIC_AUTH }}

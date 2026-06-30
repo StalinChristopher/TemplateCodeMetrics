@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "Track how much of each repo is original/template code vs custom code added since baseline. Powered by github.com/codeandtheory/TemplateCodeMetrics.",
+  "description": "Track how much of each repo is original/template code vs custom code added since baseline. Powered by https://github.com/StalinChristopher/TemplateCodeMetrics.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
