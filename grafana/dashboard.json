@@ -53,7 +53,7 @@
           "datasource": {"type": "mysql", "uid": "${DS_MYSQL}"},
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT CAST(JSON_EXTRACT(d.display_title, '$.percentages.template_pct') AS DECIMAL(5,2)) AS template_pct\nFROM cicd_deployments d\nJOIN cicd_deployment_commits cdc ON cdc.cicd_deployment_id = d.id\nWHERE cdc.repo_url = ${repo:sqlstring}\n  AND d.display_title LIKE '{\"schema_version\"%'\nORDER BY d.started_date DESC\nLIMIT 1",
+          "rawSql": "SELECT CAST(JSON_EXTRACT(d.display_title, '$.percentages.template_pct') AS DECIMAL(5,2)) AS template_pct\nFROM cicd_deployments d\nJOIN cicd_deployment_commits cdc ON cdc.cicd_deployment_id = d.id\nWHERE cdc.repo_url IN (${repo:sqlstring})\n  AND d.display_title LIKE '{\"schema_version\"%'\nORDER BY d.started_date DESC\nLIMIT 1",
           "refId": "A"
         }
       ],

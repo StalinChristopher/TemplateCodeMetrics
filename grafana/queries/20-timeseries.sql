@@ -7,7 +7,7 @@ SELECT d.started_date AS time,
        CAST(JSON_EXTRACT(d.display_title, '$.percentages.template_pct') AS DECIMAL(5,2)) AS value
 FROM cicd_deployments d
 JOIN cicd_deployment_commits cdc ON cdc.cicd_deployment_id = d.id
-WHERE cdc.repo_url = ${repo:sqlstring}
+WHERE cdc.repo_url IN (${repo:sqlstring})
   AND d.display_title LIKE '{"schema_version"%'
   AND $__timeFilter(d.started_date)
 
@@ -18,7 +18,7 @@ SELECT d.started_date AS time,
        CAST(JSON_EXTRACT(d.display_title, '$.percentages.custom_pct') AS DECIMAL(5,2)) AS value
 FROM cicd_deployments d
 JOIN cicd_deployment_commits cdc ON cdc.cicd_deployment_id = d.id
-WHERE cdc.repo_url = ${repo:sqlstring}
+WHERE cdc.repo_url IN (${repo:sqlstring})
   AND d.display_title LIKE '{"schema_version"%'
   AND $__timeFilter(d.started_date)
 
